@@ -635,6 +635,13 @@ func (rsc *ReplicaSetController) syncReplicaSet(key string) error {
 	rs = rs.DeepCopy()
 	newStatus := calculateStatus(rs, filteredPods, manageReplicasErr)
 
+	// Reset replicaset triggerID back to none after updating it once
+	rs.Annotations["triggerID"] = ""
+	rs, err = rsc.kubeClient.ExtensionsV1beta1().ReplicaSets(rs.Namespace).Update(rs)
+	if err != nil {
+		return err
+	}
+	
 	// Always updates status as pods come up or die.
 	updatedRS, err := updateReplicaSetStatus(rsc.kubeClient.ExtensionsV1beta1().ReplicaSets(rs.Namespace), rs, newStatus)
 	if err != nil {

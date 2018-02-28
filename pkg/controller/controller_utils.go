@@ -590,12 +590,12 @@ func (r RealPodControl) DeletePod(namespace string, podID string, object runtime
 	}
 
 	// Retrieves pod opject, saves annotation, and updates pod object
-	triggerID :=  ""
-	if val, ok := accessor.GetAnnotations()["triggerID"]; ok {
-		triggerID = val
-	}
 	pod, err := r.KubeClient.CoreV1().Pods(namespace).Get(podID, metav1.GetOptions{});
-	pod.Annotations["triggerID"] = triggerID
+	if val, ok := accessor.GetAnnotations()["triggerID"]; ok {
+		pod.Annotations["triggerID"] = val
+	} else {
+		pod.Annotations["triggerID"] = ""
+	}
 	r.KubeClient.CoreV1().Pods(namespace).Update(pod)
 
 	glog.V(2).Infof("Controller %v deleting pod %v/%v", accessor.GetName(), namespace, podID)
