@@ -519,6 +519,13 @@ func (dc *DeploymentController) scaleReplicaSet(rs *extensions.ReplicaSet, newSc
 			dc.eventRecorder.Eventf(deployment, v1.EventTypeNormal, "ScalingReplicaSet", "Scaled %s replica set %s to %d", scalingOperation, rs.Name, newScale)
 		}
 	}
+
+	// If scaling event, then passes triggerID to the new replicaSet
+	if val, ok := deployment.Annotations["triggerID"]; ok {
+		rs.Annotations["triggerID"] = val
+	} else {
+		rs.Annotations["triggerID"] = ""
+	}
 	return scaled, rs, err
 }
 
@@ -571,6 +578,10 @@ func (dc *DeploymentController) syncDeploymentStatus(allRSs []*extensions.Replic
 
 	newDeployment := d
 	newDeployment.Status = newStatus
+
+	// Remove triggerID from a deployment after it has synced.
+	newDeployment.Annotations["triggerID"] = ""
+
 	_, err := dc.client.ExtensionsV1beta1().Deployments(newDeployment.Namespace).UpdateStatus(newDeployment)
 	return err
 }
