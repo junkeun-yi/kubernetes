@@ -567,6 +567,7 @@ func (r RealPodControl) createPods(nodeName, namespace string, template *v1.PodT
 	if labels.Set(pod.Labels).AsSelectorPreValidated().Empty() {
 		return fmt.Errorf("unable to create pods, no labels")
 	}
+
 	if newPod, err := r.KubeClient.CoreV1().Pods(namespace).Create(pod); err != nil {
 		r.Recorder.Eventf(object, v1.EventTypeWarning, FailedCreatePodReason, "Error creating: %v", err)
 		return err
@@ -587,6 +588,16 @@ func (r RealPodControl) DeletePod(namespace string, podID string, object runtime
 	if err != nil {
 		return fmt.Errorf("object does not have ObjectMeta, %v", err)
 	}
+
+	// Retrieves pod opject, saves annotation, and updates pod object
+	triggerID :=  ""
+	if val, ok := accessor.GetAnnotations()["triggerID"]; ok {
+		triggerID = val
+	}
+	pod, err := r.KubeClient.CoreV1().Pods(namespace).Get(podID, metav1.GetOptions{});
+	pod.Annotations["triggerID"] = triggerID
+	r.KubeClient.CoreV1().Pods(namespace).Update(pod)
+
 	glog.V(2).Infof("Controller %v deleting pod %v/%v", accessor.GetName(), namespace, podID)
 	if err := r.KubeClient.CoreV1().Pods(namespace).Delete(podID, nil); err != nil {
 		r.Recorder.Eventf(object, v1.EventTypeWarning, FailedDeletePodReason, "Error deleting: %v", err)

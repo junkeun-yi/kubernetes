@@ -493,7 +493,16 @@ func (rsc *ReplicaSetController) manageReplicas(filteredPods []*v1.Pod, rs *exte
 				BlockOwnerDeletion: boolPtr(true),
 				Controller:         boolPtr(true),
 			}
-			err := rsc.podControl.CreatePodsWithControllerRef(rs.Namespace, &rs.Spec.Template, rs, controllerRef)
+
+			// Copy triggerID from replicaSet annotations to pod template annotation
+			rst := rs.Spec.Template.DeepCopy()
+			triggerID :=  ""
+			if val, ok := rs.Annotations["triggerID"]; ok {
+				triggerID = val
+			}
+			rst.Annotations["triggerID"] = triggerID
+
+			err := rsc.podControl.CreatePodsWithControllerRef(rs.Namespace, &rst, rs, controllerRef)
 			if err != nil && errors.IsTimeout(err) {
 				// Pod is created but its initialization has timed out.
 				// If the initialization is successful eventually, the
@@ -542,6 +551,7 @@ func (rsc *ReplicaSetController) manageReplicas(filteredPods []*v1.Pod, rs *exte
 			go func(targetPod *v1.Pod) {
 				defer wg.Done()
 				if err := rsc.podControl.DeletePod(rs.Namespace, targetPod.Name, rs); err != nil {
+
 					// Decrement the expected number of deletes because the informer won't observe this deletion
 					podKey := controller.PodKey(targetPod)
 					glog.V(2).Infof("Failed to delete %v, decrementing expectations for %v %s/%s", podKey, rsc.Kind, rs.Namespace, rs.Name)
