@@ -476,7 +476,15 @@ func (rsc *ReplicaSetController) manageReplicas(filteredPods []*v1.Pod, rs *exte
 						BlockOwnerDeletion: boolPtr(true),
 						Controller:         boolPtr(true),
 					}
-					err = rsc.podControl.CreatePodsWithControllerRef(rs.Namespace, &rs.Spec.Template, rs, controllerRef)
+					// Copy triggerID from replicaSet annotations to pod template annotation
+					rst := rs.Spec.Template.DeepCopy()
+					triggerID :=  ""
+					if val, ok := rs.Annotations["triggerID"]; ok {
+						triggerID = val
+					}
+					rst.Annotations["triggerID"] = triggerID
+
+					err := rsc.podControl.CreatePodsWithControllerRef(rs.Namespace, rst, rs, controllerRef)
 					if err != nil && errors.IsTimeout(err) {
 						// Pod is created but its initialization has timed out.
 						// If the initialization is successful eventually, the
@@ -634,7 +642,12 @@ func (rsc *ReplicaSetController) syncReplicaSet(key string) error {
 	rs = rs.DeepCopy()
 
 	newStatus := calculateStatus(rs, filteredPods, manageReplicasErr)
-
+	// Reset replicaset triggerID back to none after updating it once
+	rs.Annotations["triggerID"] = ""
+	rs, err = rsc.kubeClient.ExtensionsV1beta1().ReplicaSets(rs.Namespace).Update(rs)
+	if err != nil {
+		return err
+	}
 	// Always updates status as pods come up or die.
 	updatedRS, err := updateReplicaSetStatus(rsc.kubeClient.Extensions().ReplicaSets(rs.Namespace), rs, newStatus)
 	if err != nil {
