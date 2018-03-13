@@ -609,14 +609,6 @@ func (r RealPodControl) DeletePod(namespace string, podID string, object runtime
 	if err != nil {
 		return fmt.Errorf("object does not have ObjectMeta, %v", err)
 	}
-	// Retrieves pod opject, saves annotation, and updates pod object
-	pod, err := r.KubeClient.CoreV1().Pods(namespace).Get(podID, metav1.GetOptions{});
-	if val, ok := accessor.GetAnnotations()["triggerID"]; ok {
-		pod.Annotations["triggerID"] = val
-	} else {
-		pod.Annotations["triggerID"] = ""
-	}
-	r.KubeClient.CoreV1().Pods(namespace).Update(pod)
 	glog.V(2).Infof("Controller %v deleting pod %v/%v", accessor.GetName(), namespace, podID)
 	if err := r.KubeClient.Core().Pods(namespace).Delete(podID, nil); err != nil {
 		r.Recorder.Eventf(object, v1.EventTypeWarning, FailedDeletePodReason, "Error deleting: %v", err)
