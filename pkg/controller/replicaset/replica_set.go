@@ -460,7 +460,7 @@ func (rsc *ReplicaSetController) manageReplicas(filteredPods []*v1.Pod, rs *exte
 		// prevented from spamming the API service with the pod create requests
 		// after one of its pods fails.  Conveniently, this also prevents the
 		// event spam that those failures would generate.
-		
+
 		//triggerID :=  ""
 		//if val, ok := rs.Annotations["triggerID"]; ok {
 		//	triggerID = val
@@ -483,7 +483,7 @@ func (rsc *ReplicaSetController) manageReplicas(filteredPods []*v1.Pod, rs *exte
 						Controller:         boolPtr(true),
 					}
 					// Copy triggerID from replicaSet annotations to pod template annotation
-					rs.Spec.Template.Annotations["triggerID"] = "test"
+					// rs.Spec.Template.Annotations["triggerID"] = "test"
 
 					err = rsc.podControl.CreatePodsWithControllerRef(rs.Namespace, &rs.Spec.Template, rs, controllerRef)
 
