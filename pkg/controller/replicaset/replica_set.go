@@ -483,7 +483,7 @@ func (rsc *ReplicaSetController) manageReplicas(filteredPods []*v1.Pod, rs *exte
 					}
 					rs.Spec.Template.Annotations["triggerID"] = triggerID
 
-					err := rsc.podControl.CreatePodsWithControllerRef(rs.Namespace, &rs.Spec.Template, rs, controllerRef)
+					err = rsc.podControl.CreatePodsWithControllerRef(rs.Namespace, &rs.Spec.Template, rs, controllerRef)
 					if err != nil && errors.IsTimeout(err) {
 						// Pod is created but its initialization has timed out.
 						// If the initialization is successful eventually, the
