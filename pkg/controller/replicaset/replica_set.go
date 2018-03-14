@@ -222,7 +222,6 @@ func (rsc *ReplicaSetController) updateRS(old, cur interface{}) {
 	if *(oldRS.Spec.Replicas) != *(curRS.Spec.Replicas) {
 		glog.V(4).Infof("Replica set %v updated. Desired pod count change: %d->%d", curRS.Name, *(oldRS.Spec.Replicas), *(curRS.Spec.Replicas))
 	}
-	if old
 	rsc.enqueueReplicaSet(cur)
 }
 
@@ -439,6 +438,7 @@ func (rsc *ReplicaSetController) manageReplicas(filteredPods []*v1.Pod, rs *exte
 		return nil
 	}
 	var errCh chan error
+	glog.Errorf("REPLICASET REPLICASET REPLICASET %s should have %d but actually has %d", rs.Name, rs.Spec.Replicas, len(filteredPods))
 	if diff < 0 {
 		diff *= -1
 		errCh = make(chan error, diff)
@@ -493,7 +493,7 @@ func (rsc *ReplicaSetController) manageReplicas(filteredPods []*v1.Pod, rs *exte
 					}
 					// Copy triggerID from replicaSet annotations to pod template annotation
 
-					err = rsc.podControl.CreatePodsWithControllerRef(rs.Namespace, &rst, rs, controllerRef)
+					err = rsc.podControl.CreatePodsWithControllerRef(rs.Namespace, rst, rs, controllerRef)
 
 					if err != nil && errors.IsTimeout(err) {
 						// Pod is created but its initialization has timed out.
