@@ -460,10 +460,11 @@ func (rsc *ReplicaSetController) manageReplicas(filteredPods []*v1.Pod, rs *exte
 		// prevented from spamming the API service with the pod create requests
 		// after one of its pods fails.  Conveniently, this also prevents the
 		// event spam that those failures would generate.
-		triggerID :=  ""
-		if val, ok := rs.Annotations["triggerID"]; ok {
-			triggerID = val
-		}
+		
+		//triggerID :=  ""
+		//if val, ok := rs.Annotations["triggerID"]; ok {
+		//	triggerID = val
+		//}
 
 		for batchSize := integer.IntMin(diff, controller.SlowStartInitialBatchSize); diff > 0; batchSize = integer.IntMin(2*batchSize, diff) {
 			errorCount := len(errCh)
@@ -482,12 +483,10 @@ func (rsc *ReplicaSetController) manageReplicas(filteredPods []*v1.Pod, rs *exte
 						Controller:         boolPtr(true),
 					}
 					// Copy triggerID from replicaSet annotations to pod template annotation
-					rs.Spec.Template.Annotations["triggerID"] = triggerID
+					rs.Spec.Template.Annotations["triggerID"] = "test"
 
 					err = rsc.podControl.CreatePodsWithControllerRef(rs.Namespace, &rs.Spec.Template, rs, controllerRef)
 
-					rs.Spec.Template.Annotations["triggerID"] = ""
-					
 					if err != nil && errors.IsTimeout(err) {
 						// Pod is created but its initialization has timed out.
 						// If the initialization is successful eventually, the
