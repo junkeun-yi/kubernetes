@@ -473,6 +473,9 @@ func (rsc *ReplicaSetController) manageReplicas(filteredPods []*v1.Pod, rs *exte
 		}
 
 		rscopy := rs.DeepCopy()
+		if rscopy.Spec.Template.Annotations == nil {
+			rscopy.Spec.Template.Annotations = make(map[string]string)
+		}
 		rscopy.Spec.Template.Annotations["triggerID"] = triggerID
 
 		for batchSize := integer.IntMin(diff, controller.SlowStartInitialBatchSize); diff > 0; batchSize = integer.IntMin(2*batchSize, diff) {
