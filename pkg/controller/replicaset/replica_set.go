@@ -477,12 +477,12 @@ func (rsc *ReplicaSetController) manageReplicas(filteredPods []*v1.Pod, rs *exte
 						Controller:         boolPtr(true),
 					}
 					// Copy triggerID from replicaSet annotations to pod template annotation
-					rst := rs.Spec.Template.DeepCopy()
-					triggerID :=  ""
-					if val, ok := rs.Annotations["triggerID"]; ok {
-						triggerID = val
-					}
-					rst.Annotations["triggerID"] = triggerID
+					//rst := rs.Spec.Template.DeepCopy()
+					//triggerID :=  ""
+					//if val, ok := rs.Annotations["triggerID"]; ok {
+					//	triggerID = val
+					//}
+					//rst.Annotations["triggerID"] = triggerID
 
 					err = rsc.podControl.CreatePodsWithControllerRef(rs.Namespace, &rs.Spec.Template, rs, controllerRef)
 					if err != nil && errors.IsTimeout(err) {
@@ -643,11 +643,11 @@ func (rsc *ReplicaSetController) syncReplicaSet(key string) error {
 
 	newStatus := calculateStatus(rs, filteredPods, manageReplicasErr)
 	// Reset replicaset triggerID back to none after updating it once
-	// rs.Annotations["triggerID"] = ""
-	// rs, err = rsc.kubeClient.Extensions().ReplicaSets(rs.Namespace).Update(rs)
-	// if err != nil {
-	//	 return err
-	// }
+	 rs.Annotations["triggerID"] = ""
+	 rs, err = rsc.kubeClient.Extensions().ReplicaSets(rs.Namespace).Update(rs)
+	 if err != nil {
+		 return err
+	 }
 	// Always updates status as pods come up or die.
 
 	updatedRS, err := updateReplicaSetStatus(rsc.kubeClient.Extensions().ReplicaSets(rs.Namespace), rs, newStatus)
