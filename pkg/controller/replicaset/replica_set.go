@@ -222,6 +222,7 @@ func (rsc *ReplicaSetController) updateRS(old, cur interface{}) {
 	if *(oldRS.Spec.Replicas) != *(curRS.Spec.Replicas) {
 		glog.V(4).Infof("Replica set %v updated. Desired pod count change: %d->%d", curRS.Name, *(oldRS.Spec.Replicas), *(curRS.Spec.Replicas))
 	}
+	if old
 	rsc.enqueueReplicaSet(cur)
 }
 
@@ -461,10 +462,18 @@ func (rsc *ReplicaSetController) manageReplicas(filteredPods []*v1.Pod, rs *exte
 		// after one of its pods fails.  Conveniently, this also prevents the
 		// event spam that those failures would generate.
 
-		//triggerID :=  ""
-		//if val, ok := rs.Annotations["triggerID"]; ok {
-		//	triggerID = val
-		//}
+		triggerID :=  ""
+		if val, ok := rs.Annotations["triggerID"]; ok {
+			triggerID = val
+			rs.Annotations["triggerID"] = ""
+			rs, err = rsc.kubeClient.Extensions().ReplicaSets(rs.Namespace).Update(rs)
+			if err != nil {
+				return err
+			}
+		}
+
+		rst := rs.Spec.Template.DeepCopy()
+		rst.Annotations["triggerID"] = triggerID
 
 		for batchSize := integer.IntMin(diff, controller.SlowStartInitialBatchSize); diff > 0; batchSize = integer.IntMin(2*batchSize, diff) {
 			errorCount := len(errCh)
@@ -483,9 +492,8 @@ func (rsc *ReplicaSetController) manageReplicas(filteredPods []*v1.Pod, rs *exte
 						Controller:         boolPtr(true),
 					}
 					// Copy triggerID from replicaSet annotations to pod template annotation
-					// rs.Spec.Template.Annotations["triggerID"] = "test"
 
-					err = rsc.podControl.CreatePodsWithControllerRef(rs.Namespace, &rs.Spec.Template, rs, controllerRef)
+					err = rsc.podControl.CreatePodsWithControllerRef(rs.Namespace, &rst, rs, controllerRef)
 
 					if err != nil && errors.IsTimeout(err) {
 						// Pod is created but its initialization has timed out.
@@ -644,12 +652,7 @@ func (rsc *ReplicaSetController) syncReplicaSet(key string) error {
 	rs = rs.DeepCopy()
 
 	newStatus := calculateStatus(rs, filteredPods, manageReplicasErr)
-	// Reset replicaset triggerID back to none after updating it once
-	 rs.Annotations["triggerID"] = ""
-	 rs, err = rsc.kubeClient.Extensions().ReplicaSets(rs.Namespace).Update(rs)
-	 if err != nil {
-		 return err
-	 }
+
 	// Always updates status as pods come up or die.
 
 	updatedRS, err := updateReplicaSetStatus(rsc.kubeClient.Extensions().ReplicaSets(rs.Namespace), rs, newStatus)
