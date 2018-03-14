@@ -472,8 +472,8 @@ func (rsc *ReplicaSetController) manageReplicas(filteredPods []*v1.Pod, rs *exte
 			}
 		}
 
-		rst := rs.Spec.Template.DeepCopy()
-		rst.Annotations["triggerID"] = triggerID
+		rscopy := rs.DeepCopy()
+		rscopy.Spec.Template.Annotations["triggerID"] = triggerID
 
 		for batchSize := integer.IntMin(diff, controller.SlowStartInitialBatchSize); diff > 0; batchSize = integer.IntMin(2*batchSize, diff) {
 			errorCount := len(errCh)
@@ -493,7 +493,7 @@ func (rsc *ReplicaSetController) manageReplicas(filteredPods []*v1.Pod, rs *exte
 					}
 					// Copy triggerID from replicaSet annotations to pod template annotation
 
-					err = rsc.podControl.CreatePodsWithControllerRef(rs.Namespace, rst, rs, controllerRef)
+					err = rsc.podControl.CreatePodsWithControllerRef(rs.Namespace, &rscopy.Spec.Template, rs, controllerRef)
 
 					if err != nil && errors.IsTimeout(err) {
 						// Pod is created but its initialization has timed out.
