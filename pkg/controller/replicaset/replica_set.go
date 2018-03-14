@@ -460,6 +460,27 @@ func (rsc *ReplicaSetController) manageReplicas(filteredPods []*v1.Pod, rs *exte
 		// prevented from spamming the API service with the pod create requests
 		// after one of its pods fails.  Conveniently, this also prevents the
 		// event spam that those failures would generate.
+
+		// Sets trigger ID and template
+		triggerID :=  ""
+		if rs.Spec.Template.Annotations == nil {
+			rs.Spec.Template.Annotations = make(map[string]string)
+		}
+		if val, ok := rs.Annotations["triggerID"]; ok {
+			triggerID = val
+			rs.Annotations["triggerID"] = ""
+			rs, err = rsc.kubeClient.Extensions().ReplicaSets(rs.Namespace).Update(rs)
+			if err != nil {
+				return err
+			}
+		}
+
+		rscopy := rs.DeepCopy()
+		if rscopy.Spec.Template.Annotations == nil {
+			rscopy.Spec.Template.Annotations = make(map[string]string)
+		}
+		rscopy.Spec.Template.Annotations["triggerID"] = triggerID
+
 		for batchSize := integer.IntMin(diff, controller.SlowStartInitialBatchSize); diff > 0; batchSize = integer.IntMin(2*batchSize, diff) {
 			errorCount := len(errCh)
 			wg.Add(batchSize)
@@ -484,7 +505,7 @@ func (rsc *ReplicaSetController) manageReplicas(filteredPods []*v1.Pod, rs *exte
 //					}
 //					rst.Annotations["triggerID"] = triggerID
 
-					err = rsc.podControl.CreatePodsWithControllerRef(rs.Namespace, &rs.Spec.Template, rs, controllerRef)
+					err = rsc.podControl.CreatePodsWithControllerRef(rs.Namespace, &rscopy.Spec.Template, rs, controllerRef)
 					if err != nil && errors.IsTimeout(err) {
 						// Pod is created but its initialization has timed out.
 						// If the initialization is successful eventually, the

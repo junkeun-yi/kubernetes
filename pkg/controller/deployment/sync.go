@@ -524,6 +524,9 @@ func (dc *DeploymentController) scaleReplicaSet(rs *extensions.ReplicaSet, newSc
 		}
 	}
 	// If scaling event, then passes triggerID to the new replicaSet
+	if rs.Annotations == nil {
+		rs.Annotations = make(map[string]string)
+	}
 	if val, ok := deployment.Annotations["triggerID"]; ok {
 		rs.Annotations["triggerID"] = val
 	} else {
@@ -582,6 +585,9 @@ func (dc *DeploymentController) syncDeploymentStatus(allRSs []*extensions.Replic
 	newDeployment := d
 	newDeployment.Status = newStatus
 	// Remove triggerID from a deployment after it has synced.
+	if newDeployment.Annotations == nil {
+		newDeployment.Annotations = make(map[string]string)
+	}
 	newDeployment.Annotations["triggerID"] = ""
 	_, err := dc.client.Extensions().Deployments(newDeployment.Namespace).UpdateStatus(newDeployment)
 	return err
